@@ -1,6 +1,7 @@
 name: mtl
-version: 0.0.0
-synopsis: my new project
+version: 0.0.1
+synopsis: Monad Transformers Library for OCaml
+license: MIT
 obuild-ver: 1
 
 library mtl
