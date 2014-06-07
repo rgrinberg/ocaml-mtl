@@ -53,7 +53,7 @@
  *
  * Licensing: MIT (if that's compatible with the ghc sources this is partly
  * derived from)
- *)
+*)
 
 
 (* Some library functions used below. *)
@@ -83,7 +83,7 @@ end
 (*
  * This module contains factories that extend a base set of
  * monadic definitions with a larger family of standard derived values.
- *)
+*)
 
 module Monad = struct
 
@@ -91,7 +91,7 @@ module Monad = struct
    * Signature extenders:
    *   Make :: BASE -> S
    *   MakeT :: BASET (with Wrapped : S) -> result sig not declared
-   *)
+  *)
 
 
   (* type of base definitions *)
@@ -117,7 +117,7 @@ module Monad = struct
      * When no natural zero is available, use `let zero () = Util.undef`.
      * The Make functor automatically detects for zero >>= ..., and
      * plus zero _, plus _ zero; it also substitutes zero for pattern-match failures.
-     *)
+    *)
     val zero : unit -> ('x,'a) m
     (* zero has to be thunked to ensure results are always poly enough *)
     val plus : ('x,'a) m -> ('x,'a) m -> ('x,'a) m
@@ -155,7 +155,7 @@ module Monad = struct
     (* expressions after >> will be evaluated before they're passed to
      * bind, so you can't do `zero () >> assert false`
      * this works though: `zero () >>= fun _ -> assert false`
-     *)
+    *)
     let (>>) u v = u >>= fun _ -> v
     let lift f u = u >>= fun a -> unit (f a)
     (* lift is called listM, fmap, and <$> in Haskell *)
@@ -172,23 +172,23 @@ module Monad = struct
     let do_when test u = if test then u else unit ()
     let do_unless test u = if test then unit () else u
     (* A Haskell-like version works:
-         let rec forever uthunk = uthunk () >>= fun _ -> forever uthunk
+       let rec forever uthunk = uthunk () >>= fun _ -> forever uthunk
      * but the recursive call is not in tail position so this can stack overflow. *)
     let forever uthunk =
-        let z = zero () in
-        let id result = result in
-        let kcell = ref id in
-        let rec loop _ =
-            let result = uthunk (kcell := id) >>= chained
-            in !kcell result
-        and chained _ =
-            kcell := loop; z (* we use z only for its polymorphism *)
-        in loop z
+      let z = zero () in
+      let id result = result in
+      let kcell = ref id in
+      let rec loop _ =
+        let result = uthunk (kcell := id) >>= chained
+        in !kcell result
+      and chained _ =
+        kcell := loop; z (* we use z only for its polymorphism *)
+      in loop z
     (* Reimplementations of the preceding using a hand-rolled State or StateT
-can also stack overflow. *)
+       can also stack overflow. *)
     let sequence ms =
       let op u v = u >>= fun x -> v >>= fun xs -> unit (x :: xs) in
-        Util.fold_right op ms (unit [])
+      Util.fold_right op ms (unit [])
     let sequence_ ms =
       Util.fold_right (>>) ms (unit ())
 
@@ -196,22 +196,22 @@ can also stack overflow. *)
      * We don't, but notice that M.mapM == ListT(M).distribute
      * There's also a parallel TreeT(M).distribute *)
     (*
-    let mapM f alist = sequence (Util.map f alist)
-    let mapM_ f alist = sequence_ (Util.map f alist)
-    let rec filterM f lst = match lst with
-      | [] -> unit []
-      | x::xs -> f x >>= fun flag -> filterM f xs >>= fun ys -> unit (if flag then x :: ys else ys)
-    let forM alist f = mapM f alist
-    let forM_ alist f = mapM_ f alist
-    let map_and_unzipM f xs = sequence (Util.map f xs) >>= fun x -> unit (Util.unzip x)
-    let zip_withM f xs ys = sequence (Util.zip_with f xs ys)
-    let zip_withM_ f xs ys = sequence_ (Util.zip_with f xs ys)
-    let rec foldM f z lst = match lst with
-      | [] -> unit z
-      | x::xs -> f z x >>= fun z' -> foldM f z' xs
-    let foldM_ f z xs = foldM f z xs >> unit ()
-    let replicateM n x = sequence (Util.replicate n x)
-    let replicateM_ n x = sequence_ (Util.replicate n x)
+       let mapM f alist = sequence (Util.map f alist)
+       let mapM_ f alist = sequence_ (Util.map f alist)
+       let rec filterM f lst = match lst with
+       | [] -> unit []
+       | x::xs -> f x >>= fun flag -> filterM f xs >>= fun ys -> unit (if flag then x :: ys else ys)
+       let forM alist f = mapM f alist
+       let forM_ alist f = mapM_ f alist
+       let map_and_unzipM f xs = sequence (Util.map f xs) >>= fun x -> unit (Util.unzip x)
+       let zip_withM f xs ys = sequence (Util.zip_with f xs ys)
+       let zip_withM_ f xs ys = sequence_ (Util.zip_with f xs ys)
+       let rec foldM f z lst = match lst with
+       | [] -> unit z
+       | x::xs -> f z x >>= fun z' -> foldM f z' xs
+       let foldM_ f z xs = foldM f z xs >> unit ()
+       let replicateM n x = sequence (Util.replicate n x)
+       let replicateM_ n x = sequence_ (Util.replicate n x)
     *)
     let guard test = if test then B.unit () else zero ()
     let sum ms = Util.fold_right plus ms (zero ())
@@ -230,23 +230,19 @@ can also stack overflow. *)
     (* lift/elevate laws:
      *     elevate (W.unit a) == unit a
      *     elevate (W.bind w f) == elevate w >>= fun a -> elevate (f a)
-     *)
+    *)
     val zero : unit -> ('x,'a) m
     val plus : ('x,'a) m -> ('x,'a) m -> ('x,'a) m
   end
   module MakeT(T : BASET) = struct
     include Make(struct
-        include T
-        let unit a = elevate (Wrapped.unit a)
+      include T
+      let unit a = elevate (Wrapped.unit a)
     end)
     let elevate = T.elevate
   end
 
 end
-
-
-
-
 
 module Identity_monad : sig
   (* expose only the implementation of type `'a result` *)
@@ -267,7 +263,6 @@ end = struct
   end
   include Monad.Make(Base)
 end
-
 
 module Maybe_monad : sig
   (* expose only the implementation of type `'a result` *)
@@ -322,7 +317,6 @@ end = struct
   end
 end
 
-
 module List_monad : sig
   (* declare additional operation, while still hiding implementation of type m *)
   type ('x,'a) result = 'a list
@@ -345,43 +339,43 @@ module List_monad : sig
   end
 end = struct
   module Base = struct
-   type ('x,'a) m = 'a list
-   type ('x,'a) result = 'a list
-   type ('x,'a) result_exn = 'a
-   let unit a = [a]
-   let bind u f = Util.concat_map f u
-   let run u = u
-   let run_exn u = match u with
-     | [] -> failwith "no values"
-     | [a] -> a
-     | many -> failwith "multiple values"
-   let zero () = []
-   (* satisfies Distrib *)
-   let plus = Util.append
+    type ('x,'a) m = 'a list
+    type ('x,'a) result = 'a list
+    type ('x,'a) result_exn = 'a
+    let unit a = [a]
+    let bind u f = Util.concat_map f u
+    let run u = u
+    let run_exn u = match u with
+      | [] -> failwith "no values"
+      | [a] -> a
+      | many -> failwith "multiple values"
+    let zero () = []
+    (* satisfies Distrib *)
+    let plus = Util.append
   end
   include Monad.Make(Base)
   (* let either u v = plus u v *)
   (* insert 3 [1;2] ~~> [[3;1;2]; [1;3;2]; [1;2;3]] *)
   let rec insert a u =
     plus (unit (a :: u)) (match u with
-        | [] -> zero ()
-        | x :: xs -> (insert a xs) >>= fun v -> unit (x :: v)
+      | [] -> zero ()
+      | x :: xs -> (insert a xs) >>= fun v -> unit (x :: v)
     )
   (* permute [1;2;3] ~~> [1;2;3]; [2;1;3]; [2;3;1]; [1;3;2]; [3;1;2]; [3;2;1] *)
   let rec permute u = match u with
-      | [] -> unit []
-      | x :: xs -> (permute xs) >>= (fun v -> insert x v)
+    | [] -> unit []
+    | x :: xs -> (permute xs) >>= (fun v -> insert x v)
   (* select [1;2;3] ~~> [(1,[2;3]); (2,[1;3]), (3;[1;2])] *)
   let rec select u = match u with
     | [] -> zero ()
     | x::xs -> plus (unit (x, xs)) (select xs >>= fun (x', xs') -> unit (x', x :: xs'))
   module T(Wrapped : Monad.S) = struct
     (* Wrapped.sequence ms  ===
-         let plus1 u v =
-           Wrapped.bind u (fun x ->
-           Wrapped.bind v (fun xs ->
-           Wrapped.unit (x :: xs)))
-         in Util.fold_right plus1 ms (Wrapped.unit []) *)
+       let plus1 u v =
+       Wrapped.bind u (fun x ->
+       Wrapped.bind v (fun xs ->
+       Wrapped.unit (x :: xs)))
+       in Util.fold_right plus1 ms (Wrapped.unit []) *)
     (* distribute  ===  Wrapped.mapM; copies alist to its image under f *)
     let distribute f alist = Wrapped.sequence (Util.map f alist)
 
@@ -393,8 +387,8 @@ end = struct
       let elevate w = Wrapped.bind w (fun a -> Wrapped.unit [a])
       let bind u f =
         Wrapped.bind u (fun ts ->
-        Wrapped.bind (distribute f ts) (fun tts ->
-        Wrapped.unit (Util.concat tts)))
+          Wrapped.bind (distribute f ts) (fun tts ->
+            Wrapped.unit (Util.concat tts)))
       let run u = Wrapped.run u
       let run_exn u =
         let w = Wrapped.bind u (fun ts -> match ts with
@@ -405,31 +399,31 @@ end = struct
       let zero () = Wrapped.unit []
       let plus u v =
         Wrapped.bind u (fun us ->
-        Wrapped.bind v (fun vs ->
-        Wrapped.unit (Base.plus us vs)))
+          Wrapped.bind v (fun vs ->
+            Wrapped.unit (Base.plus us vs)))
     end)
 
-   (* insert 3 {[1;2]} ~~> {[ {[3;1;2]}; {[1;3;2]}; {[1;2;3]} ]} *)
-   let rec insert a u =
-     plus
-     (unit (Wrapped.bind u (fun us -> Wrapped.unit (a :: us))))
-     (Wrapped.bind u (fun us -> match us with
-         | [] -> zero ()
-         | x::xs -> (insert a (Wrapped.unit xs)) >>= fun v -> unit (Wrapped.bind v (fun vs -> Wrapped.unit (x :: vs)))))
+    (* insert 3 {[1;2]} ~~> {[ {[3;1;2]}; {[1;3;2]}; {[1;2;3]} ]} *)
+    let rec insert a u =
+      plus
+        (unit (Wrapped.bind u (fun us -> Wrapped.unit (a :: us))))
+        (Wrapped.bind u (fun us -> match us with
+           | [] -> zero ()
+           | x::xs -> (insert a (Wrapped.unit xs)) >>= fun v -> unit (Wrapped.bind v (fun vs -> Wrapped.unit (x :: vs)))))
 
-   (* select {[1;2;3]} ~~> {[ (1,{[2;3]}); (2,{[1;3]}), (3;{[1;2]}) ]} *)
-   let rec select u =
-     Wrapped.bind u (fun us -> match us with
-         | [] -> zero ()
-         | x::xs -> plus (unit (x, Wrapped.unit xs))
-             (select (Wrapped.unit xs) >>= fun (x', xs') -> unit (x', Wrapped.bind xs' (fun ys -> Wrapped.unit (x :: ys)))))
+    (* select {[1;2;3]} ~~> {[ (1,{[2;3]}); (2,{[1;3]}), (3;{[1;2]}) ]} *)
+    let rec select u =
+      Wrapped.bind u (fun us -> match us with
+        | [] -> zero ()
+        | x::xs -> plus (unit (x, Wrapped.unit xs))
+                     (select (Wrapped.unit xs) >>= fun (x', xs') -> unit (x', Wrapped.bind xs' (fun ys -> Wrapped.unit (x :: ys)))))
 
-   (* permute {[1;2;3]} ~~> {[ {[1;2;3]}; {[2;1;3]}; {[2;3;1]}; {[1;3;2]}; {[3;1;2]}; {[3;2;1]} ]} *)
+    (* permute {[1;2;3]} ~~> {[ {[1;2;3]}; {[2;1;3]}; {[2;3;1]}; {[1;3;2]}; {[3;1;2]}; {[3;2;1]} ]} *)
 
-   let rec permute u =
-     Wrapped.bind u (fun us -> match us with
-         | [] -> unit (zero ())
-         | x::xs -> permute (Wrapped.unit xs) >>= (fun v -> insert x v))
+    let rec permute u =
+      Wrapped.bind u (fun us -> match us with
+        | [] -> unit (zero ())
+        | x::xs -> permute (Wrapped.unit xs) >>= (fun v -> insert x v))
 
     let expose u = u
   end
@@ -438,13 +432,13 @@ end
 
 (* must be parameterized on (struct type err = ... end) *)
 module Error_monad(Err : sig
-  type err
-  exception Exc of err
+                     type err
+                     exception Exc of err
   (*
-  val zero : unit -> err
-  val plus : err -> err -> err
-  *)
-end) : sig
+                        val zero : unit -> err
+                        val plus : err -> err -> err
+                     *)
+                   end) : sig
   (* declare additional operations, while still hiding implementation of type m *)
   type err = Err.err
   type 'a error = Error of err | Success of 'a
@@ -524,8 +518,8 @@ module Failure = Error_monad(struct
   type err = string
   exception Exc = Failure
   (*
-  let zero = ""
-  let plus s1 s2 = s1 ^ "\n" ^ s2
+     let zero = ""
+     let plus s1 s2 = s1 ^ "\n" ^ s2
   *)
 end)
 
@@ -669,8 +663,8 @@ end
 
 (* State monad with different interface (structured store) *)
 module Ref_monad(V : sig
-  type value
-end) : sig
+                   type value
+                 end) : sig
   type ref
   type value = V.value
   type ('x,'a) result = 'a
@@ -743,13 +737,12 @@ end = struct
   end
 end
 
-
 (* must be parameterized on (struct type log = ... end) *)
 module Writer_monad(Log : sig
-  type log
-  val zero : log
-  val plus : log -> log -> log
-end) : sig
+                      type log
+                      val zero : log
+                      val plus : log -> log -> log
+                    end) : sig
   (* declare additional operations, while still hiding implementation of type m *)
   type log = Log.log
   type ('x,'a) result = 'a * log
@@ -800,8 +793,8 @@ end = struct
         Wrapped.bind w (fun a -> Wrapped.unit (a, Log.zero))
       let bind u f =
         Wrapped.bind u (fun (a, w) ->
-        Wrapped.bind (f a) (fun (b, w') ->
-        Wrapped.unit (b, Log.plus w w')))
+          Wrapped.bind (f a) (fun (b, w') ->
+            Wrapped.unit (b, Log.plus w w')))
       let zero () = elevate (Wrapped.zero ())
       let plus u v = Wrapped.plus u v
       let run u = Wrapped.run u
@@ -856,8 +849,8 @@ end = struct
     type ('x,'a) result_exn = 'a
     let unit a = { run = (fun () -> ()); value = a }
     let bind (a : ('x,'a) m) (f: 'a -> ('x,'b) m) : ('x,'b) m =
-     let fres = f a.value in
-       { run = (fun () -> a.run (); fres.run ()); value = fres.value }
+      let fres = f a.value in
+      { run = (fun () -> a.run (); fres.run ()); value = fres.value }
     let run a = let () = a.run () in a.value
     let run_exn = run
     let zero () = Util.undef
@@ -914,10 +907,10 @@ end = struct
     let usek a = (fun _ -> k a)
     in (f usek) k)
   (*
-  val callcc : (('a -> 'r) -> ('r,'a) m) -> ('r,'a) m
-  val throw : ('a -> 'r) -> 'a -> ('r,'b) m
-  let callcc f = fun k -> f k k
-  let throw k a = fun _ -> k a
+     val callcc : (('a -> 'r) -> ('r,'a) m) -> ('r,'a) m
+     val throw : ('a -> 'r) -> 'a -> ('r,'b) m
+     let callcc f = fun k -> f k k
+     let throw k a = fun _ -> k a
   *)
 
   (* from http://www.haskell.org/haskellwiki/MonadCont_done_right
@@ -975,7 +968,7 @@ end
  *   >>= fun x -> unit (x, 0)
  *   in run u)
  *
- *)
+*)
 
 
 module Tree_monad : sig
@@ -1000,13 +993,13 @@ end = struct
   type 'a tree = Leaf of 'a | Node of ('a tree * 'a tree)
   (* uses supplied plus and zero to copy t to its image under f *)
   let mapT (f : 'a -> 'b) (t : 'a tree option) (zero : unit -> 'b) (plus : 'b -> 'b -> 'b) : 'b = match t with
-      | None -> zero ()
-      | Some ts -> let rec loop ts = (match ts with
-                     | Leaf a -> f a
-                     | Node (l, r) ->
-                         (* recursive application of f may delete a branch *)
-                         plus (loop l) (loop r)
-                   ) in loop ts
+    | None -> zero ()
+    | Some ts -> let rec loop ts = (match ts with
+      | Leaf a -> f a
+      | Node (l, r) ->
+        (* recursive application of f may delete a branch *)
+        plus (loop l) (loop r)
+    ) in loop ts
   module Base = struct
     type ('x,'a) m = 'a tree option
     type ('x,'a) result = 'a tree option
@@ -1023,8 +1016,8 @@ end = struct
     let run_exn u = match u with
       | None -> failwith "no values"
       (*
-      | Some (Leaf a) -> a
-      | many -> failwith "multiple values"
+         | Some (Leaf a) -> a
+         | many -> failwith "multiple values"
       *)
       | Some us -> us
   end
@@ -1039,16 +1032,16 @@ end = struct
         let zero () = Wrapped.unit None
         let plus u v =
           Wrapped.bind u (fun us ->
-          Wrapped.bind v (fun vs ->
-          Wrapped.unit (Base.plus us vs)))
+            Wrapped.bind v (fun vs ->
+              Wrapped.unit (Base.plus us vs)))
         let elevate w = Wrapped.bind w (fun a -> Wrapped.unit (Some (Leaf a)))
         let bind u f = Wrapped.bind u (fun t -> mapT f t zero plus)
         let run u = Wrapped.run u
         let run_exn u =
-            let w = Wrapped.bind u (fun t -> match t with
-              | None -> Wrapped.zero ()
-              | Some ts -> Wrapped.unit ts
-            ) in Wrapped.run_exn w
+          let w = Wrapped.bind u (fun t -> match t with
+            | None -> Wrapped.zero ()
+            | Some ts -> Wrapped.unit ts
+          ) in Wrapped.run_exn w
       end)
     end
     include BaseT
