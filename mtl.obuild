@@ -7,4 +7,3 @@ obuild-ver: 1
 library mtl
   modules: Mtl
   src-dir: lib
-  c-dir: ./
