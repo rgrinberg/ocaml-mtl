@@ -1,5 +1,4 @@
 (*
- * monads.ml
  *
  * Relies on features introduced in OCaml 3.12
  *
@@ -140,7 +139,10 @@ module Monad = struct
     val sum : ('x,'a) m list -> ('x,'a) m
   end
 
-  module Make(B : BASE) : S with type ('x,'a) m = ('x,'a) B.m and type ('x,'a) result = ('x,'a) B.result and type ('x,'a) result_exn = ('x,'a) B.result_exn = struct
+  module Make(B : BASE) :
+    S with type ('x,'a) m = ('x,'a) B.m
+       and type ('x,'a) result = ('x,'a) B.result
+       and type ('x,'a) result_exn = ('x,'a) B.result_exn = struct
     include B
     let bind (u : ('x,'a) m) (f : 'a -> ('x,'b) m) : ('x,'b) m =
       if u == Util.undef then Util.undef
@@ -248,7 +250,8 @@ module Identity_monad : sig
   (* expose only the implementation of type `'a result` *)
   type ('x,'a) result = 'a
   type ('x,'a) result_exn = 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
 end = struct
   module Base = struct
     type ('x,'a) m = 'a
@@ -268,12 +271,14 @@ module Maybe_monad : sig
   (* expose only the implementation of type `'a result` *)
   type ('x,'a) result = 'a option
   type ('x,'a) result_exn = 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   (* MaybeT transformer *)
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = ('x,'a option) Wrapped.result
     type ('x,'a) result_exn = ('x,'a) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
   end
 end = struct
@@ -321,14 +326,16 @@ module List_monad : sig
   (* declare additional operation, while still hiding implementation of type m *)
   type ('x,'a) result = 'a list
   type ('x,'a) result_exn = 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   val permute : ('x,'a) m -> ('x,('x,'a) m) m
   val select : ('x,'a) m -> ('x,'a * ('x,'a) m) m
   (* ListT transformer *)
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = ('x,'a list) Wrapped.result
     type ('x,'a) result_exn = ('x,'a) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     (* note that second argument is an 'a list, not the more abstract 'a m *)
     (* type is ('a -> 'b W) -> 'a list -> 'b list W == 'b listT(W) *)
@@ -429,29 +436,28 @@ end = struct
   end
 end
 
-
 (* must be parameterized on (struct type err = ... end) *)
 module Error_monad(Err : sig
                      type err
                      exception Exc of err
-  (*
-                        val zero : unit -> err
-                        val plus : err -> err -> err
-                     *)
+                     (* val zero : unit -> err
+                        val plus : err -> err -> err *)
                    end) : sig
   (* declare additional operations, while still hiding implementation of type m *)
   type err = Err.err
   type 'a error = Error of err | Success of 'a
   type ('x,'a) result = 'a error
   type ('x,'a) result_exn = 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   val throw : err -> ('x,'a) m
   val catch : ('x,'a) m -> (err -> ('x,'a) m) -> ('x,'a) m
   (* ErrorT transformer *)
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = ('x,'a) Wrapped.result
     type ('x,'a) result_exn = ('x,'a) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     val throw : err -> ('x,'a) m
     val catch : ('x,'a) m -> (err -> ('x,'a) m) -> ('x,'a) m
@@ -530,7 +536,8 @@ module Reader_monad(Env : sig type env end) : sig
   type env = Env.env
   type ('x,'a) result = env -> 'a
   type ('x,'a) result_exn = env -> 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   val ask : ('x,env) m
   val asks : (env -> 'a) -> ('x,'a) m
   (* lookup i == `fun e -> e i` would assume env is a functional type *)
@@ -539,7 +546,8 @@ module Reader_monad(Env : sig type env end) : sig
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = env -> ('x,'a) Wrapped.result
     type ('x,'a) result_exn = env -> ('x,'a) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     val ask : ('x,env) m
     val asks : (env -> 'a) -> ('x,'a) m
@@ -594,7 +602,8 @@ module State_monad(Store : sig type store end) : sig
   type store = Store.store
   type ('x,'a) result =  store -> 'a * store
   type ('x,'a) result_exn = store -> 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   val get : ('x,store) m
   val gets : (store -> 'a) -> ('x,'a) m
   val put : store -> ('x,unit) m
@@ -603,7 +612,8 @@ module State_monad(Store : sig type store end) : sig
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = store -> ('x,'a * store) Wrapped.result
     type ('x,'a) result_exn = store -> ('x,'a) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     val get : ('x,store) m
     val gets : (store -> 'a) -> ('x,'a) m
@@ -660,16 +670,14 @@ end = struct
   end
 end
 
-
 (* State monad with different interface (structured store) *)
-module Ref_monad(V : sig
-                   type value
-                 end) : sig
+module Ref_monad(V : sig type value end) : sig
   type ref
   type value = V.value
   type ('x,'a) result = 'a
   type ('x,'a) result_exn = 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   val newref : value -> ('x,ref) m
   val deref : ref -> ('x,value) m
   val change : ref -> value -> ('x,unit) m
@@ -677,7 +685,8 @@ module Ref_monad(V : sig
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = ('x,'a) Wrapped.result
     type ('x,'a) result_exn = ('x,'a) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     val newref : value -> ('x,ref) m
     val deref : ref -> ('x,value) m
@@ -747,7 +756,8 @@ module Writer_monad(Log : sig
   type log = Log.log
   type ('x,'a) result = 'a * log
   type ('x,'a) result_exn = 'a * log
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   val tell : log -> ('x,unit) m
   val listen : ('x,'a) m -> ('x,'a * log) m
   val listens : (log -> 'b) -> ('x,'a) m -> ('x,'a * 'b) m
@@ -757,7 +767,8 @@ module Writer_monad(Log : sig
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = ('x,'a * log) Wrapped.result
     type ('x,'a) result_exn = ('x,'a * log) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     val tell : log -> ('x,unit) m
     val listen : ('x,'a) m -> ('x,'a * log) m
@@ -836,7 +847,8 @@ module IO_monad : sig
   (* declare additional operation, while still hiding implementation of type m *)
   type ('x,'a) result = 'a
   type ('x,'a) result_exn = 'a
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   val printf : ('a, unit, string, ('x,unit) m) format4 -> 'a
   val print_string : string -> ('x,unit) m
   val print_int : int -> ('x,unit) m
@@ -871,7 +883,9 @@ module Continuation_monad : sig
   type ('r,'a) m
   type ('r,'a) result = ('r,'a) m
   type ('r,'a) result_exn = ('a -> 'r) -> 'r
-  include Monad.S with type ('r,'a) result := ('r,'a) result and type ('r,'a) result_exn := ('r,'a) result_exn and type ('r,'a) m := ('r,'a) m
+  include Monad.S with type ('r,'a) result := ('r,'a) result
+                   and type ('r,'a) result_exn := ('r,'a) result_exn
+                   and type ('r,'a) m := ('r,'a) m
   val callcc : (('a -> ('r,'b) m) -> ('r,'a) m) -> ('r,'a) m
   val reset : ('a,'a) m -> ('r,'a) m
   val shift : (('a -> ('q,'r) m) -> ('r,'r) m) -> ('r,'a) m
@@ -883,7 +897,9 @@ module Continuation_monad : sig
     type ('r,'a) m
     type ('r,'a) result = ('a -> ('r,'r) Wrapped.m) -> ('r,'r) Wrapped.result
     type ('r,'a) result_exn = ('a -> ('r,'r) Wrapped.m) -> ('r,'r) Wrapped.result_exn
-    include Monad.S with type ('r,'a) result := ('r,'a) result and type ('r,'a) result_exn := ('r,'a) result_exn and type ('r,'a) m := ('r,'a) m
+    include Monad.S with type ('r,'a) result := ('r,'a) result
+                     and type ('r,'a) result_exn := ('r,'a) result_exn
+                     and type ('r,'a) m := ('r,'a) m
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     val callcc : (('a -> ('r,'b) m) -> ('r,'a) m) -> ('r,'a) m
     (* TODO: reset,shift,abort,run0 *)
@@ -977,12 +993,14 @@ module Tree_monad : sig
   type 'a tree = Leaf of 'a | Node of ('a tree * 'a tree)
   type ('x,'a) result = 'a tree option
   type ('x,'a) result_exn = 'a tree
-  include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+  include Monad.S with type ('x,'a) result := ('x,'a) result
+                   and type ('x,'a) result_exn := ('x,'a) result_exn
   (* TreeT transformer *)
   module T : functor (Wrapped : Monad.S) -> sig
     type ('x,'a) result = ('x,'a tree option) Wrapped.result
     type ('x,'a) result_exn = ('x,'a tree) Wrapped.result_exn
-    include Monad.S with type ('x,'a) result := ('x,'a) result and type ('x,'a) result_exn := ('x,'a) result_exn
+    include Monad.S with type ('x,'a) result := ('x,'a) result
+                     and type ('x,'a) result_exn := ('x,'a) result_exn
     val elevate : ('x,'a) Wrapped.m -> ('x,'a) m
     (* note that second argument is an 'a tree?, not the more abstract 'a m *)
     (* type is ('a -> 'b W) -> 'a tree? -> 'b tree? W == 'b treeT(W) *)
@@ -1048,7 +1066,6 @@ end = struct
     let distribute f t = mapT (fun a -> elevate (f a)) t zero plus
     let expose u = u
   end
-
-end;;
+end
 
 
